@@ -10,8 +10,11 @@
     <body>
     <div class="card">
         <div class="search">
-            <input type="text " placeholder="enter city name" spellcheck="false">
-            <button><img scr="images/wind.png"></button>
+            <input type="text "id="search-box" placeholder="enter city name" spellcheck="false">
+            <button id="search-btn"><img scr="images/wind.png"></button>
+        </div>
+        <div>
+            <button id="current-location-btn">Current Weather</button>
         </div>
         <div class="weather">
             <img src="images/rain.png" class="weather-icon">
@@ -35,33 +38,68 @@
             </div>
         </div>
     </div>
-
+    <!-- const apiKey = "06a17ed8fb89bfa6918998d78c66245e"; -->
     <script>
-        let lat = 44.34
-        let lon = 10.99
-       const apiKey = "06a17ed8fb89bfa6918998d78c66245e";
-       const apiUrl = "https://api.openweathermap.org/data/2.5/weather?units=metric&q=";
+   async function checkWeather(city = "pune", isFrom) {
+    const apiKey = "06a17ed8fb89bfa6918998d78c66245e"; // Replace with your actual API key
+    let apiUrl = "https://api.openweathermap.org/data/2.5/weather?";
+    let data;
 
-       const searchBox= document.querySelector(".search input")
-       const searchBtn= document.querySelector(".search button")
+    if (isFrom === "current") {
+        if (navigator.geolocation) {
+            try {
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject);
+                });
+                const { latitude, longitude } = position.coords;
+                const currentLocationApiUrl = `${apiUrl}lat=${latitude}&lon=${longitude}&appid=${apiKey}`;
+                const response = await fetch(currentLocationApiUrl);
+                data = await response.json();
+                console.log(data)
+            } catch (error) {
+                console.error("Error getting location:", error);
+                alert("Unable to retrieve your location.");
+                return;
+            }
+        } else {
+            alert("Geolocation is not supported by your browser.");
+            return;
+        }
+    } else {
+        const cityApiUrl = `${apiUrl}q=${city}&appid=${apiKey}`;
+        const response = await fetch(cityApiUrl);
+        data = await response.json();
+        console.log(data)
+    }
 
-       async function checkWeather(city) {
-          const responce = await fetch(apiUrl + city + `&appid=${apiKey}`);
-          var data = await responce.json();
-          console.log(data);
-          
-          document.querySelector(".city").innerHTML=data.name;
-          document.querySelector(".temp").innerHTML=Math.round( data.main.temp) + "°c";
-          document.querySelector(".humidity").innerHTML=data.main.humidity + "%";
-          document.querySelector(".wind").innerHTML=data.wind.speed + "km/h";
+    if (data && data.cod === 200) { // Check if the API call was successful
+        document.querySelector(".city").innerHTML = data.name;
+        document.querySelector(".temp").innerHTML = Math.round(data.main.temp - 273.15) + "°C"; // Convert Kelvin to Celsius
+        document.querySelector(".humidity").innerHTML = data.main.humidity + "%";
+        document.querySelector(".wind").innerHTML = data.wind.speed + " km/h";
+    } else {
+        alert("Weather data not found!");
+    }
+}
 
-       }
-         
-        searchBtn.addEventListener("click", () =>{
-            checkWeather(searchBox.value);
-            searchBox.value = "";
-        })
-    //    checkWeather();
-    </script>
-    </body>
+// Event listeners
+const searchBtn = document.querySelector("#search-btn");
+const searchBox = document.querySelector("#search-box");
+
+searchBtn.addEventListener("click", () => {
+    const city = searchBox.value.trim();
+    if (city) {
+        checkWeather(city);
+        searchBox.value = ""; // Clear the input box
+    } else {
+        alert("Please enter a city name.");
+    }
+});
+
+document.getElementById("current-location-btn").addEventListener("click", () => {
+    checkWeather("", "current");
+});
+
+ </script>
+ </body>
 </html>
